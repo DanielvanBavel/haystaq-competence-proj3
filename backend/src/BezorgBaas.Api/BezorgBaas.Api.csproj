@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>BezorgBaas.Api</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\BezorgBaas.Application\BezorgBaas.Application.csproj"/>
+        <ProjectReference Include="..\BezorgBaas.Infrastructure\BezorgBaas.Infrastructure.csproj"/>
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+
+# Node
+node_modules/
+dist/
+
+# Playwright
+tests/test-results/
+tests/playwright-report/
+tests/package-lock.json
+
+# Tooling
+.env
+*.log
+.idea/
+.vs/
+.vscode/
+.DS_Store

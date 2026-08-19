@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bezorgbaas
+      POSTGRES_PASSWORD: bezorgbaas
+      POSTGRES_DB: bezorgbaas
+    ports:
+      - "${DB_PORT:-5435}:5432"
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - bezorgbaas-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U bezorgbaas" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: bezorgbaas
+      DB_USER: bezorgbaas
+      DB_PASSWORD: bezorgbaas
+      SEED_FILE: /app/db-init/02_seed.sql
+    ports:
+      - "${API_PORT:-8083}:8080"
+    volumes:
+      - ./db/init:/app/db-init:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q -O - http://localhost:8080/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-3003}:80"
+    depends_on:
+      - api
+
+volumes:
+  bezorgbaas-data:

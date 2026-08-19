@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>BezorgBaas betaalscherm</title>
+  <style>
+    body { font: 14px/1.5 "Segoe UI", system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #1c2430; }
+    h2 { font-size: 15px; margin: 0 0 12px; }
+    label { display: block; margin-bottom: 10px; font-size: 12px; color: #5b6779; }
+    input, select { width: 100%; padding: 8px; border: 1px solid #ccd3dd; border-radius: 4px; font: inherit; }
+    button { padding: 9px 16px; border: 0; border-radius: 4px; background: #17803d; color: #fff; font: inherit; cursor: pointer; }
+    .status { margin-top: 12px; font-size: 13px; }
+    .status.error { color: #b03027; }
+    .status.ok { color: #17803d; }
+    .hint { color: #7b8798; font-size: 11px; margin-top: 2px; }
+  </style>
+</head>
+<body>
+<h2>Veilig betalen</h2>
+
+<div id="ideal-fields">
+  <label>
+    Kies je bank
+    <select id="bank" data-testid="payment-bank">
+      <option value="">Maak een keuze</option>
+      <option value="ING">ING</option>
+      <option value="RABO">Rabobank</option>
+      <option value="ABN">ABN AMRO</option>
+      <option value="BUNQ">bunq</option>
+    </select>
+  </label>
+</div>
+
+<div id="card-fields" hidden>
+  <label>
+    Kaartnummer
+    <input id="card-number" data-testid="payment-card-number" inputmode="numeric" placeholder="4111 1111 1111 1111"/>
+    <span class="hint">Testkaarten die eindigen op 0000 worden geweigerd.</span>
+  </label>
+</div>
+
+<button id="pay" data-testid="payment-submit">Betaling bevestigen</button>
+<p class="status" id="status" data-testid="payment-status"></p>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const method = (params.get('method') || 'ideal').toLowerCase();
+  const amount = Number(params.get('amount') || '0');
+
+  document.getElementById('ideal-fields').hidden = method !== 'ideal';
+  document.getElementById('card-fields').hidden = method !== 'card';
+
+  const status = document.getElementById('status');
+
+  document.getElementById('pay').addEventListener('click', async () => {
+    status.textContent = 'Bezig met verwerken...';
+    status.className = 'status';
+
+    const payload = {
+      method,
+      amount,
+      bank: document.getElementById('bank').value || null,
+      cardNumber: document.getElementById('card-number').value || null
+    };
+
+    try {
+      const response = await fetch('/api/payments/authorize', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        status.textContent = result.message || 'De betaling is mislukt.';
+        status.className = 'status error';
+        return;
+      }
+
+      if (result.status === 'approved') {
+        status.textContent = 'Betaling geslaagd.';
+        status.className = 'status ok';
+        window.parent.postMessage({ type: 'payment-approved', reference: result.reference }, '*');
+      } else {
+        status.textContent = result.message || 'De betaling is geweigerd.';
+        status.className = 'status error';
+        window.parent.postMessage({ type: 'payment-declined', message: result.message }, '*');
+      }
+    } catch (error) {
+      status.textContent = 'De betaaldienst is niet bereikbaar.';
+      status.className = 'status error';
+    }
+  });
+</script>
+</body>
+</html>
